@@ -43,6 +43,13 @@ STYLE = """
         color: #777777;
         margin-top: 10px;
     }
+
+    .profile-info {
+        border: 1px solid #cccccc;
+        padding: 15px;
+        margin-bottom: 20px;
+        border-radius: 5px;
+    }
 </style>
 """
 
@@ -54,7 +61,8 @@ def create_database():
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             username TEXT NOT NULL,
-            password TEXT NOT NULL
+            password TEXT NOT NULL,
+            about TEXT
         )
     """)
 
@@ -67,15 +75,31 @@ def create_database():
         )
     """)
 
-    # Проверяем старую таблицу posts
-    columns = connection.execute(
+    # Проверяем таблицу пользователей
+    user_columns = connection.execute(
+        "PRAGMA table_info(users)"
+    ).fetchall()
+
+    user_column_names = [
+        column[1] for column in user_columns
+    ]
+
+    # Добавляем поле "О себе" в старую базу
+    if "about" not in user_column_names:
+        connection.execute(
+            "ALTER TABLE users ADD COLUMN about TEXT"
+        )
+
+    # Проверяем таблицу публикаций
+    post_columns = connection.execute(
         "PRAGMA table_info(posts)"
     ).fetchall()
 
-    column_names = [column[1] for column in columns]
+    post_column_names = [
+        column[1] for column in post_columns
+    ]
 
-    # Добавляем дату, если база была создана раньше
-    if "created_at" not in column_names:
+    if "created_at" not in post_column_names:
         connection.execute(
             "ALTER TABLE posts ADD COLUMN created_at TEXT"
         )
@@ -107,7 +131,9 @@ def index():
         posts_html += f"""
             <div class="post">
 
-                <b>{post[1]}</b>
+                <a href="/profile/{post[1]}">
+                    <b>{post[1]}</b>
+                </a>
 
                 <p>{post[2]}</p>
 
@@ -131,6 +157,10 @@ def index():
                 Вы вошли как:
                 <b>{session["username"]}</b>
             </p>
+
+            <a href="/profile/{session["username"]}">
+                Мой профиль
+            </a>
 
             <a href="/create_post">
                 Добавить пост
@@ -226,8 +256,11 @@ def register():
             """
 
         connection.execute(
-            "INSERT INTO users (username, password) VALUES (?, ?)",
-            (username, password)
+            """
+            INSERT INTO users (username, password, about)
+            VALUES (?, ?, ?)
+            """,
+            (username, password, "")
         )
 
         connection.commit()
@@ -444,7 +477,6 @@ def create_post():
     """
 
 
-# Страница публикаций текущего пользователя
 @app.route("/my_posts")
 def my_posts():
     if "username" not in session:
@@ -531,7 +563,6 @@ def my_posts():
     """
 
 
-# Редактирование публикации
 @app.route("/edit_post/<int:post_id>", methods=["GET", "POST"])
 def edit_post(post_id):
     if "username" not in session:
@@ -541,8 +572,6 @@ def edit_post(post_id):
 
     connection = sqlite3.connect("database.db")
 
-    # Получаем пост только если он принадлежит
-    # текущему пользователю
     post = connection.execute(
         """
         SELECT * FROM posts
@@ -557,9 +586,7 @@ def edit_post(post_id):
         return f"""
             {STYLE}
 
-            <h2>
-                Публикация не найдена
-            </h2>
+            <h2>Публикация не найдена</h2>
 
             <a href="/my_posts">
                 Вернуться
@@ -632,7 +659,6 @@ def edit_post(post_id):
     """
 
 
-# Удаление публикации
 @app.route("/delete_post/<int:post_id>")
 def delete_post(post_id):
     if "username" not in session:
@@ -642,7 +668,6 @@ def delete_post(post_id):
 
     connection = sqlite3.connect("database.db")
 
-    # Можно удалить только собственный пост
     connection.execute(
         """
         DELETE FROM posts
@@ -657,11 +682,196 @@ def delete_post(post_id):
     return redirect("/my_posts")
 
 
+# Публичный профиль пользователя
+@app.route("/profile/<username>")
+def profile(username):
+    connection = sqlite3.connect("database.db")
+
+    user = connection.execute(
+        "SELECT * FROM users WHERE username = ?",
+        (username,)
+    ).fetchone()
+
+    if user is None:
+        connection.close()
+
+        return f"""
+            {STYLE}
+
+            <h2>Пользователь не найден</h2>
+
+            <a href="/">
+                На главную
+            </a>
+        """
+
+    posts = connection.execute(
+        """
+        SELECT * FROM posts
+        WHERE username = ?
+        ORDER BY id DESC
+        """,
+        (username,)
+    ).fetchall()
+
+    connection.close()
+
+    about = user[3]
+
+    if about is None or about == "":
+        about = "Пользователь пока ничего о себе не написал."
+
+    posts_html = ""
+
+    for post in posts:
+        created_at = post[3]
+
+        if created_at is None:
+            created_at = "Дата не указана"
+
+        posts_html += f"""
+            <div class="post">
+
+                <p>{post[2]}</p>
+
+                <div class="post-date">
+                    Опубликовано: {created_at}
+                </div>
+
+            </div>
+        """
+
+    if not posts:
+        posts_html = """
+            <p>
+                У пользователя пока нет публикаций.
+            </p>
+        """
+
+    edit_link = ""
+
+    # Кнопка редактирования есть только
+    # у владельца профиля
+    if session.get("username") == username:
+        edit_link = """
+            <a href="/edit_profile">
+                Редактировать профиль
+            </a>
+            <br><br>
+        """
+
+    return f"""
+        {STYLE}
+
+        <h1>Профиль: {username}</h1>
+
+        <div class="profile-info">
+
+            <h3>О себе</h3>
+
+            <p>{about}</p>
+
+            <p>
+                Публикаций:
+                <b>{len(posts)}</b>
+            </p>
+
+            {edit_link}
+
+        </div>
+
+        <h2>Публикации пользователя</h2>
+
+        {posts_html}
+
+        <br>
+
+        <a href="/">
+            Вернуться в общую ленту
+        </a>
+    """
+
+
+# Редактирование своего профиля
+@app.route("/edit_profile", methods=["GET", "POST"])
+def edit_profile():
+    if "username" not in session:
+        return redirect("/login")
+
+    username = session["username"]
+
+    connection = sqlite3.connect("database.db")
+
+    user = connection.execute(
+        "SELECT * FROM users WHERE username = ?",
+        (username,)
+    ).fetchone()
+
+    if request.method == "POST":
+        about = request.form["about"].strip()
+
+        connection.execute(
+            """
+            UPDATE users
+            SET about = ?
+            WHERE username = ?
+            """,
+            (about, username)
+        )
+
+        connection.commit()
+        connection.close()
+
+        return redirect(f"/profile/{username}")
+
+    connection.close()
+
+    about = user[3]
+
+    if about is None:
+        about = ""
+
+    return f"""
+        {STYLE}
+
+        <h2>Редактирование профиля</h2>
+
+        <p>
+            Пользователь:
+            <b>{username}</b>
+        </p>
+
+        <form method="POST">
+
+            <textarea
+                name="about"
+                placeholder="Расскажите немного о себе..."
+                rows="5"
+                cols="40"
+            >{about}</textarea>
+
+            <br><br>
+
+            <button type="submit">
+                Сохранить
+            </button>
+
+        </form>
+
+        <br>
+
+        <a href="/profile/{username}">
+            Отмена
+        </a>
+    """
+
+
 @app.route("/logout")
 def logout():
     session.pop("username", None)
 
     return redirect("/")
+
 
 
 
