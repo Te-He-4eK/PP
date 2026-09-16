@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block title %}Новый пост{% endblock %}
+
+{% block content %}
+
+<h2>Новый пост</h2>
+
+<p>Автор: <b>{{ username }}</b></p>
+
+<form method="POST">
+
+    <textarea
+        name="text"
+        placeholder="Напишите что-нибудь..."
+        rows="5"
+        cols="40"
+        required
+    ></textarea>
+
+    <br><br>
+
+    <button type="submit">Опубликовать</button>
+
+</form>
+
+<br>
+
+<a href="{{ url_for('index') }}">Назад</a>
+
+{% endblock %}

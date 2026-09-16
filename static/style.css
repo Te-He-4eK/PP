@@ -1,0 +1,42 @@
+body {
+    font-family: Arial, sans-serif;
+    max-width: 700px;
+    margin: 40px auto;
+    padding: 20px;
+}
+
+a {
+    color: #3366cc;
+    margin-right: 10px;
+}
+
+input,
+textarea {
+    padding: 8px;
+    width: 300px;
+}
+
+button {
+    padding: 8px 15px;
+    cursor: pointer;
+}
+
+.post {
+    border: 1px solid #ccc;
+    padding: 15px;
+    margin-bottom: 15px;
+    border-radius: 5px;
+}
+
+.post-date {
+    font-size: 13px;
+    color: #777;
+    margin-top: 10px;
+}
+
+.profile-info {
+    border: 1px solid #ccc;
+    padding: 15px;
+    margin-bottom: 20px;
+    border-radius: 5px;
+}

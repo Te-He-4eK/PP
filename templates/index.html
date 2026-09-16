@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block title %}Общая лента{% endblock %}
+
+{% block content %}
+
+<h1>Общая лента</h1>
+
+{% if username %}
+
+    <p>Вы вошли как: <b>{{ username }}</b></p>
+
+    <a href="{{ url_for('profile', username=username) }}">Мой профиль</a>
+    <a href="{{ url_for('create_post') }}">Добавить пост</a>
+    <a href="{{ url_for('my_posts') }}">Мои публикации</a>
+
+    <br><br>
+
+    <a href="{{ url_for('logout') }}">Выйти</a>
+
+{% else %}
+
+    <a href="{{ url_for('register') }}">Регистрация</a>
+    <a href="{{ url_for('login') }}">Вход</a>
+
+{% endif %}
+
+<hr>
+
+<h2>Публикации</h2>
+
+<p>Всего публикаций: <b>{{ posts|length }}</b></p>
+
+{% if posts %}
+
+    {% for post in posts %}
+
+        <div class="post">
+
+            <a href="{{ url_for('profile', username=post[1]) }}">
+                <b>{{ post[1] }}</b>
+            </a>
+
+            <p>{{ post[2] }}</p>
+
+            <div class="post-date">
+                Опубликовано:
+                {% if post[3] %}
+                    {{ post[3] }}
+                {% else %}
+                    Дата не указана
+                {% endif %}
+            </div>
+
+        </div>
+
+    {% endfor %}
+
+{% else %}
+
+    <p>Пока нет публикаций.</p>
+
+{% endif %}
+
+{% endblock %}
