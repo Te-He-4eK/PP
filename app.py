@@ -6,9 +6,44 @@ app = Flask(__name__)
 app.secret_key = "secret_key"
 
 
+# Простые стили для приложения
+STYLE = """
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        max-width: 700px;
+        margin: 40px auto;
+        padding: 20px;
+    }
+
+    a {
+        color: #3366cc;
+    }
+
+    input, textarea {
+        padding: 8px;
+        width: 300px;
+    }
+
+    button {
+        padding: 8px 15px;
+        cursor: pointer;
+    }
+
+    .post {
+        border: 1px solid #cccccc;
+        padding: 15px;
+        margin-bottom: 15px;
+        border-radius: 5px;
+    }
+</style>
+"""
+
+
 def create_database():
     connection = sqlite3.connect("database.db")
 
+    # Таблица пользователей
     connection.execute("""
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -17,6 +52,7 @@ def create_database():
         )
     """)
 
+    # Таблица постов
     connection.execute("""
         CREATE TABLE IF NOT EXISTS posts (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -42,11 +78,10 @@ def index():
 
     for post in posts:
         posts_html += f"""
-            <div>
+            <div class="post">
                 <b>{post[1]}</b>
                 <p>{post[2]}</p>
             </div>
-            <hr>
         """
 
     if not posts:
@@ -54,6 +89,8 @@ def index():
 
     if "username" in session:
         return f"""
+            {STYLE}
+
             <h1>Общая лента</h1>
 
             <p>
@@ -74,6 +111,8 @@ def index():
         """
 
     return f"""
+        {STYLE}
+
         <h1>Общая лента</h1>
 
         <a href="/register">Регистрация</a>
@@ -97,9 +136,14 @@ def register():
 
         # Проверяем пустые поля
         if username == "" or password == "":
-            return """
+            return f"""
+                {STYLE}
+
                 <h2>Логин и пароль не могут быть пустыми</h2>
-                <a href="/register">Вернуться к регистрации</a>
+
+                <a href="/register">
+                    Вернуться к регистрации
+                </a>
             """
 
         connection = sqlite3.connect("database.db")
@@ -113,9 +157,16 @@ def register():
         if existing_user:
             connection.close()
 
-            return """
-                <h2>Пользователь с таким именем уже существует</h2>
-                <a href="/register">Выбрать другой логин</a>
+            return f"""
+                {STYLE}
+
+                <h2>
+                    Пользователь с таким именем уже существует
+                </h2>
+
+                <a href="/register">
+                    Выбрать другой логин
+                </a>
             """
 
         connection.execute(
@@ -126,12 +177,19 @@ def register():
         connection.commit()
         connection.close()
 
-        return """
+        return f"""
+            {STYLE}
+
             <h2>Регистрация успешна!</h2>
-            <a href="/login">Перейти ко входу</a>
+
+            <a href="/login">
+                Перейти ко входу
+            </a>
         """
 
-    return """
+    return f"""
+        {STYLE}
+
         <h2>Регистрация</h2>
 
         <form method="POST">
@@ -165,6 +223,12 @@ def register():
         <a href="/login">
             Уже есть аккаунт? Войти
         </a>
+
+        <br><br>
+
+        <a href="/">
+            На главную
+        </a>
     """
 
 
@@ -186,17 +250,29 @@ def login():
         if user:
             session["username"] = username
 
-            return """
+            return f"""
+                {STYLE}
+
                 <h2>Вход выполнен!</h2>
-                <a href="/">Перейти на главную</a>
+
+                <a href="/">
+                    Перейти на главную
+                </a>
             """
 
-        return """
+        return f"""
+            {STYLE}
+
             <h2>Неверный логин или пароль</h2>
-            <a href="/login">Попробовать снова</a>
+
+            <a href="/login">
+                Попробовать снова
+            </a>
         """
 
-    return """
+    return f"""
+        {STYLE}
+
         <h2>Вход</h2>
 
         <form method="POST">
@@ -230,15 +306,26 @@ def login():
         <a href="/register">
             Нет аккаунта? Зарегистрироваться
         </a>
+
+        <br><br>
+
+        <a href="/">
+            На главную
+        </a>
     """
 
 
 @app.route("/create_post", methods=["GET", "POST"])
 def create_post():
     if "username" not in session:
-        return """
+        return f"""
+            {STYLE}
+
             <h2>Сначала войдите в аккаунт</h2>
-            <a href="/login">Войти</a>
+
+            <a href="/login">
+                Войти
+            </a>
         """
 
     if request.method == "POST":
@@ -246,9 +333,14 @@ def create_post():
 
         # Запрещаем пустые посты
         if text == "":
-            return """
+            return f"""
+                {STYLE}
+
                 <h2>Пост не может быть пустым</h2>
-                <a href="/create_post">Вернуться</a>
+
+                <a href="/create_post">
+                    Вернуться
+                </a>
             """
 
         username = session["username"]
@@ -263,12 +355,19 @@ def create_post():
         connection.commit()
         connection.close()
 
-        return """
+        return f"""
+            {STYLE}
+
             <h2>Пост опубликован!</h2>
-            <a href="/">Вернуться в общую ленту</a>
+
+            <a href="/">
+                Вернуться в общую ленту
+            </a>
         """
 
     return f"""
+        {STYLE}
+
         <h2>Новый пост</h2>
 
         <p>
@@ -296,7 +395,9 @@ def create_post():
 
         <br>
 
-        <a href="/">Назад</a>
+        <a href="/">
+            Назад
+        </a>
     """
 
 
@@ -304,15 +405,18 @@ def create_post():
 def logout():
     session.pop("username", None)
 
-    return """
+    return f"""
+        {STYLE}
+
         <h2>Вы вышли из аккаунта</h2>
-        <a href="/">На главную</a>
+
+        <a href="/">
+            На главную
+        </a>
     """
 
 
-if __name__ == "__main__":
-    create_database()
-    app.run(debug=True)
+
 
 """def show_users():
     connection = sqlite3.connect("database.db")
